@@ -4,8 +4,8 @@ description: How to use Continuous Development in Elastisys Compliant Kubernetes
 
 # Continuous Development
 
-When developing on Kubernetes, it can be time-consuming to manually run commands to build new images, 
-push images to a container registry, update Kubernetes manifests, and deploy new manifests to the cluster with 
+When developing on Kubernetes, it can be time-consuming to manually run commands to build new images,
+push images to a container registry, update Kubernetes manifests, and deploy new manifests to the cluster with
 each source-code change.
 
 [Skaffold](https://github.com/GoogleContainerTools/skaffold) is a tool that can be used to ease this process.
@@ -29,6 +29,7 @@ sudo install skaffold /usr/local/bin/
     Skaffold will use the active `KUBECONFIG` to authenticate to the Kubernetes cluster.
 
 If you havent't done so already, clone the user demo:
+
 ```bash
 git clone https://github.com/elastisys/compliantkubernetes/
 cd compliantkubernetes/user-demo
@@ -42,10 +43,10 @@ cd compliantkubernetes/user-demo
 skaffold init
 ```
 
-This command will scan the current project for images to build and Kubernetes manifests to deploy. For each image that 
+This command will scan the current project for images to build and Kubernetes manifests to deploy. For each image that
 Skaffold finds you will be prompted to specify how to build them, or if they are not built by the current project.
 
-The first image skaffold finds is busybox, however this image is not built from this project, so choose 
+The first image skaffold finds is busybox, however this image is not built from this project, so choose
 `None (image not built from these sources)`
 
 ![Skaffold init Output1](/compliantkubernetes/user-guide/img/skaffold-busybox.png)
@@ -57,7 +58,7 @@ The second image Skaffold finds is the user-demo image and this image is built f
 Skaffold then asks for which resources we want to create Kubernetes resources, but as the image already has a helm-chart
 this can be skipped by pressing enter.
 
-Skaffold will then create the `skaffold.yaml` file containing our configuration. Skaffold will also automatically detect the 
+Skaffold will then create the `skaffold.yaml` file containing our configuration. Skaffold will also automatically detect the
 helm-chart that deploys the `user-demo` image.
 
 ### Developing
@@ -76,18 +77,27 @@ So any changes made to the source-files will automatically be updated in the clu
 When starting `skaffold dev`, the logs of the deployed artifacts will automatically be directed to the console, which makes it
 easy to debug the application in the cluster.
 
-### Portforwarding
+### Advanced
 
-Skaffold also supports port-forwarding to the deployed resources. This can be enabled by adding the `--port-forward` flag to the
-dev command:
+- Skaffold also supports port-forwarding to the deployed resources. This can be enabled by adding the `--port-forward` flag to the
+  dev command:
 
-```bash
-skaffold dev --port-forward
-```
+    ```bash
+    skaffold dev --port-forward
+    ```
 
-Skaffold will then automatically port-forward local ports to the containers running in the cluster.
+    Skaffold will then automatically port-forward local ports to the containers running in the cluster.
+
+- Skaffold supports [File Sync](https://skaffold.dev/docs/pipeline-stages/filesync/) which will avoid rebuilding of containers by
+  automatically updating images inside the running container instead of re-building it. This is setup inside the `skaffold.yaml` file.
 
 ### Clean-up
 
 To stop Skaffold `ctrl + c` can be used and will trigger Skaffold to stop listening for changes and
 clean-up the deployed artifacts from the cluster.
+
+This can also be triggered by running:
+
+```bash
+skaffold delete
+```

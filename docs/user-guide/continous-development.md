@@ -8,7 +8,7 @@ When developing on Kubernetes, it can be time-consuming to manually run commands
 push images to a container registry, update Kubernetes manifests, and deploy new manifests to the cluster with
 each source-code change.
 
-[Skaffold](https://github.com/GoogleContainerTools/skaffold) is a tool that can be used to ease this process.
+[Skaffold](https://skaffold.dev/) is a tool that can be used to ease this process.
 Skaffold will automate the process of building, pushing and deploying new images based on changes to the source-code.
 
 Skaffold requires minimal setup as the tool has no cluster-side components, and will automatically detect the configuration to use.
@@ -35,7 +35,28 @@ git clone https://github.com/elastisys/compliantkubernetes/
 cd compliantkubernetes/user-demo
 ```
 
-<!-- TODO: I didn't read the docs thingie? -->
+Then configure the repository for the image in file `deploy/ck8s-user-demo/values.yaml`. You need push access to this repository ([More info](registry.md#configure-container-registry-credentials)).
+
+```diff
+...
+image:
+- repository: i-didnt-read-the-docs/ck8s-user-demo
++ repository: <IMAGE-REPOSITORY>/ck8s-user-demo
+...
+```
+
+(Optionally) configure the domain to use for the demo application in the same file `deploy/ck8s-user-demo/values.yaml`
+
+```diff
+...
+ingress:
+  enabled: true
+- hostname: i-didnt-read-the-docs.example.com
++ hostname: demo.<DOMAIN>
+...
+```
+
+If the repository is private, a pull secret must be created to use it in Kubernetes, see [Configure an Image Pull Secret](kubernetes-api.md#configure-an-image-pull-secret)
 
 ### Initialize Skaffold
 
@@ -46,7 +67,7 @@ skaffold init
 This command will scan the current project for images to build and Kubernetes manifests to deploy. For each image that
 Skaffold finds you will be prompted to specify how to build them, or if they are not built by the current project.
 
-The first image skaffold finds is busybox, however this image is not built from this project, so choose
+The first image Skaffold finds is busybox, however this image is not built from this project, so choose
 `None (image not built from these sources)`
 
 ![Skaffold init Output1](/compliantkubernetes/user-guide/img/skaffold-busybox.png)
@@ -55,11 +76,11 @@ The second image Skaffold finds is the user-demo image and this image is built f
 
 ![Skaffold init Output2](/compliantkubernetes/user-guide/img/skaffold-user-demo.png)
 
-Skaffold then asks for which resources we want to create Kubernetes resources, but as the image already has a helm-chart
+Skaffold then asks for which resources we want to create Kubernetes resources, but as the image already has a Helm Chart
 this can be skipped by pressing enter.
 
 Skaffold will then create the `skaffold.yaml` file containing our configuration. Skaffold will also automatically detect the
-helm-chart that deploys the `user-demo` image.
+Helm Chart that deploys the `user-demo` image.
 
 ### Developing
 
@@ -77,19 +98,18 @@ So any changes made to the source-files will automatically be updated in the clu
 When starting `skaffold dev`, the logs of the deployed artifacts will automatically be directed to the console, which makes it
 easy to debug the application in the cluster.
 
+If a `hostname` was configured previously the application can be accessed from there directly. Otherwise the flag
+`--port-forward` can be added to the command, and Skaffold will automatically forward the ports on the application
+to the local workstation.
+
+```bash
+skaffold dev --port-forward
+```
+
 ### Advanced
 
-- Skaffold also supports port-forwarding to the deployed resources. This can be enabled by adding the `--port-forward` flag to the
-  dev command:
-
-    ```bash
-    skaffold dev --port-forward
-    ```
-
-    Skaffold will then automatically port-forward local ports to the containers running in the cluster.
-
-- Skaffold supports [File Sync](https://skaffold.dev/docs/pipeline-stages/filesync/) which will avoid rebuilding of containers by
-  automatically updating images inside the running container instead of re-building it. This is setup inside the `skaffold.yaml` file.
+Skaffold supports [File Sync](https://skaffold.dev/docs/pipeline-stages/filesync/) which will avoid rebuilding of containers by
+automatically updating images inside the running container instead of re-building it. This is setup inside the `skaffold.yaml` file.
 
 ### Clean-up
 

@@ -35,29 +35,6 @@ git clone https://github.com/elastisys/compliantkubernetes/
 cd compliantkubernetes/user-demo
 ```
 
-Then configure the repository for the image in file `deploy/ck8s-user-demo/values.yaml`. You need push access to this repository ([More info](registry.md#configure-container-registry-credentials)).
-
-```diff
-...
-image:
-- repository: i-didnt-read-the-docs/ck8s-user-demo
-+ repository: <IMAGE-REPOSITORY>/ck8s-user-demo
-...
-```
-
-(Optionally) configure the domain to use for the demo application in the same file `deploy/ck8s-user-demo/values.yaml`
-
-```diff
-...
-ingress:
-  enabled: true
-- hostname: i-didnt-read-the-docs.example.com
-+ hostname: demo.<DOMAIN>
-...
-```
-
-If the repository is private, a pull secret must be created to use it in Kubernetes, see [Configure an Image Pull Secret](kubernetes-api.md#configure-an-image-pull-secret)
-
 ### Initialize Skaffold
 
 ```bash
@@ -81,6 +58,28 @@ this can be skipped by pressing enter.
 
 Skaffold will then create the `skaffold.yaml` file containing our configuration. Skaffold will also automatically detect the
 Helm Chart that deploys the `user-demo` image.
+
+The `skaffold.yaml` must then be configured to use the correct domain and project for the image
+([More info](registry.md#configure-container-registry-credentials)). You need push access to this repository.
+(Optionally add a hostname to access the application).
+
+```diff
+build:
+  artifacts:
+- - image: i-didnt-read-the-docs/ck8s-user-demo
++ - image: <DOMAIN>/<REGISTRY_PROJECT>/ck8s-user-demo
+    docker:
+      dockerfile: Dockerfile
+...
+  valuesFiles:
+  - deploy/ck8s-user-demo/values.yaml
+  version: 0.1.0
++ setValues:
++   image.repository: <DOMAIN>/<REGISTRY_PROJECT>/ck8s-user-demo
++   ingress.hostname: demo.<DOMAIN>
+```
+
+If the repository is private, a pull secret must be created to use it in Kubernetes, see [Configure an Image Pull Secret](kubernetes-api.md#configure-an-image-pull-secret)
 
 ### Developing
 

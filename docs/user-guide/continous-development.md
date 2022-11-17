@@ -76,7 +76,7 @@ build:
   version: 0.1.0
 + setValues:
 +   image.repository: <DOMAIN>/<REGISTRY_PROJECT>/ck8s-user-demo
-+   ingress.hostname: demo.<DOMAIN>
++   ingress.hostname: demo.<DOMAIN>     # (Optional)
 ```
 
 If the repository is private, a pull secret must be created to use it in Kubernetes, see [Configure an Image Pull Secret](kubernetes-api.md#configure-an-image-pull-secret)
@@ -97,26 +97,95 @@ So any changes made to the source-files will automatically be updated in the clu
 When starting `skaffold dev`, the logs of the deployed artifacts will automatically be directed to the console, which makes it
 easy to debug the application in the cluster.
 
-If a `hostname` was configured previously the application can be accessed from there directly. Otherwise the flag
+If `ingress.hostname` was configured previously the application can be accessed from there directly. Otherwise the flag
 `--port-forward` can be added to the command, and Skaffold will automatically forward the ports on the application
-to the local workstation.
+to the local workstation:
 
 ```bash
 skaffold dev --port-forward
 ```
 
-### Advanced
+### Application updates
 
-Skaffold supports [File Sync](https://skaffold.dev/docs/pipeline-stages/filesync/) which will avoid rebuilding of containers by
-automatically updating images inside the running container instead of re-building it. This is setup inside the `skaffold.yaml` file.
+When the application has been built and deployed to the cluster Skaffold shows which URL to access,
+shows the logs of the application, and starts listening for changes in the source-files.
 
-### Clean-up
+![Skaffold Output1](/compliantkubernetes/user-guide/img/skaffold-output1.png)
+
+When visiting the URL to the application or the portforwarded URL the following output can be seen:
+
+```json
+{"hostname":"ck8s-user-demo-dd9c58979-rm9rv","version":"0.0.1"}
+```
+
+If you inside the `routes/index.js` file add the following:
+
+```diff
+...
+res.send({
+  hostname: os.hostname(),
+  version: process.env.npm_package_version,
++ hello: "world"
+});
+...
+```
+
+And then save the file, Skaffold will automatically detect the change, build a new image, and deploy the new image
+to the cluster. After the deployment has stabilized, when visiting the same URL, the output is now:
+
+```json
+{"hostname":"ck8s-user-demo-54bbdcf6fc-gthsc","version":"0.0.1","hello":"world"}
+```
+
+### Configuration updates
+
+To see the amount of pods, run (inside another terminal):
+
+```bash
+$ kubectl get pods                          
+NAME                              READY   STATUS    RESTARTS   AGE
+ck8s-user-demo-7645db4f5c-h4xks   1/1     Running   0          45s
+ck8s-user-demo-7645db4f5c-svqfs   1/1     Running   0          35s
+```
+
+There are two pods running. To change this, edit the file `deploy/ck8s-user-demo/values.yaml`:
+
+```diff
+- replicaCount: 2
++ replicaCount: 1
+```
+
+And save the file, this will also trigger Skaffold to update the deployment.
+Because the modification only impacts the Kubernetes configuration, the application image does
+not need to be rebuilt, and a new Helm revision may be deployed right away.
+
+Once the deployments have stabilized the amount of pods can be inspected again:
+
+```bash
+$ kubectl get pods
+NAME                              READY   STATUS    RESTARTS   AGE
+ck8s-user-demo-7645db4f5c-svqfs   1/1     Running   0          4m45s
+```
+
+## Clean-up
 
 To stop Skaffold `ctrl + c` can be used and will trigger Skaffold to stop listening for changes and
 clean-up the deployed artifacts from the cluster.
 
-This can also be triggered by running:
+The clean-up can also be triggered by running:
 
 ```bash
 skaffold delete
 ```
+
+## Advanced
+
+- Skaffold supports multiple different builder, such as Dockerfile, Bazel, Buildpacks or others
+  ([More Info](https://skaffold.dev/docs/pipeline-stages/builders/)).
+
+- Skaffold supports copying files to the running containers which will avoid rebuilding of
+  containers when not needed ([More Info](https://skaffold.dev/docs/pipeline-stages/filesync/)).
+
+## Further Reading
+
+- [Skaffold Documentation](https://skaffold.dev/docs/)
